@@ -179,7 +179,8 @@ def show_image(file,lowsig=1,hisig=4,skyonly=False):
     return
 
     
-def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0):
+def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
+                windows=False):
     """
     CreateMovie(FrameFiles)
     
@@ -247,9 +248,17 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0)
         plt.clf()
 
         i += 1
-    os.system("rm "+filename+".mp4")
+
+    if windows:
+        outdir = os.path.normpath('C:/Users/observatory/Documents/Python Scripts')+'\\'
+        os.system("del "+outdir+filename+".mp4")
+    else:
+        os.system("rm "+filename+".mp4")
     os.system("ffmpeg -r "+str(fps)+" -i _tmp%05d.png -b:v 20M -vcodec libx264 -pix_fmt yuv420p -s 808x764 "+filename+".mp4")
-    os.system("rm _tmp*.png")
+    if windows:
+        os.system("del "+outdir+"_tmp*png")
+    else:
+        os.system("rm _tmp*.png")
     done_in(t)
     
     return
