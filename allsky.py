@@ -250,13 +250,13 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
         i += 1
 
     if windows:
-        outdir = os.path.normpath('C:/Users/observatory/Documents/Python Scripts')+'\\'
-        os.system("del "+outdir+filename+".mp4")
+#        outdir = os.path.normpath('C:/Users/observatory/Documents/Python Scripts')+'\\'
+        os.system("del "+filename+".mp4")
     else:
         os.system("rm "+filename+".mp4")
     os.system("ffmpeg -r "+str(fps)+" -i _tmp%05d.png -b:v 20M -vcodec libx264 -pix_fmt yuv420p -s 808x764 "+filename+".mp4")
     if windows:
-        os.system("del "+outdir+"_tmp*png")
+        os.system("del _tmp*png")
     else:
         os.system("rm _tmp*.png")
     done_in(t)
