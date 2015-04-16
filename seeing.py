@@ -286,4 +286,3 @@ def vet_FWHM_series(time,raw):
     return newt, FWHM
 
 
-    
