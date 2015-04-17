@@ -7,7 +7,7 @@ import robust as rb
 import sys, os, time, glob
 #import scipy as sp
 #import matplotlib.patheffects as PathEffects
-#import pdb
+import pdb
 #import djs_phot_mb as djs
 #from select import select
 #from astropysics.coords import AngularCoordinate as angcor
@@ -94,7 +94,7 @@ def done_in(tmaster):
 # get_files:                                                           #
 #----------------------------------------------------------------------#
 
-def get_files(prefix,dir="/Users/jonswift/Dropbox (Thacher)/Observatory/AllSkyCam/Data/",
+def get_files(prefix='IMG',dir="/Users/jonswift/Dropbox (Thacher)/Observatory/AllSkyCam/Data/",
               suffix='.FIT'):
     
     """
@@ -204,8 +204,11 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
     def movie_image(file,lowsig=1,hisig=4):
 
         # Get image and header
-        image, header = pf.getdata(file, 0, header=True)
+        image, header = pf.getdata(file, 0, header=True)        
 
+        date = header['DATE-OBS']
+        time = header['TIME-OBS']
+        
         # Keep region determined by eye
         image = image[:,200:1270]
 
@@ -219,6 +222,12 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
         # Plot image
         plt.imshow(image,vmin=vmin,vmax=vmax,cmap='gray',
                    interpolation='nearest',origin='upper')
+
+        plt.annotate(date,[0.08,0.92],horizontalalignment='left',
+                     xycoords='figure fraction',fontsize=14,color='white')
+
+        plt.annotate(time,[0.92,0.92],horizontalalignment='right',
+                     xycoords='figure fraction',fontsize=14,color='white')
 
         # Turn axis labeling off
         plt.axis('off')
@@ -250,7 +259,6 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
         i += 1
 
     if windows:
-#        outdir = os.path.normpath('C:/Users/observatory/Documents/Python Scripts')+'\\'
         os.system("del "+filename+".mp4")
     else:
         os.system("rm "+filename+".mp4")
