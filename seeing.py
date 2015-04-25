@@ -13,10 +13,12 @@
 # 
 # History:
 # --------
-# jswift 2/8/2015: First versions of get_data, fwhm_ave, fwhm_all,
-#                  and fwhm_stats written
+# jswift  2/8/2015: First versions of get_data, fwhm_ave, fwhm_all,
+#                   and fwhm_stats written
 #
-# jswift 4/1/2015: Vetted all FWHM data
+# jswift  4/1/2015: Vetted all FWHM data
+# jswift 4/15/2015: Added simple histogram plotting function.
+#
 ######################################################################
 
 import numpy as np
@@ -29,7 +31,7 @@ import pdb
 import matplotlib as mpl
 import datetime
 
-def plot_params(fontsize=20,linewidth=1.5):
+def plot_params(fontsize=16,linewidth=1.5):
     """
     Procedure to set the parameters for this suite of plotting utilities
     """
@@ -41,8 +43,8 @@ def plot_params(fontsize=20,linewidth=1.5):
     mpl.rcParams['xtick.major.width'] = 1.5
     mpl.rcParams['ytick.major.size'] = 5
     mpl.rcParams['ytick.major.width'] = 1.5
-    mpl.rcParams['xtick.labelsize'] = 18
-    mpl.rcParams['ytick.labelsize'] = 18
+    mpl.rcParams['xtick.labelsize'] = 14
+    mpl.rcParams['ytick.labelsize'] = 14
     fs = fontsize
     lw = linewidth
 
@@ -286,5 +288,21 @@ def vet_FWHM_series(time,raw):
 
     return newt, FWHM
 
+def fwhm_hist(vec):
 
-    
+    plot_params()
+    plt.ion()
+    plt.figure(33)
+    maxval = np.max(vec)
+    minval = np.min(vec)
+    std = np.std(vec)
+    med = np.median(vec)
+
+    vec = vec[vec < 5*std+med]
+    plt.hist(vec,bins=100)
+    plt.xlabel('FWHM (arcsec)',fontsize=fs)
+    plt.ylabel('Frequency',fontsize=fs)
+
+    mpl.rcdefaults()
+    return
+

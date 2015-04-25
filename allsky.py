@@ -1,17 +1,18 @@
 import matplotlib.animation as animation
 import numpy as np
 import matplotlib.pyplot as plt
-import astropy.io.fits
-from astropy import wcs
 import pyfits as pf
-from astropysics.coords import AngularCoordinate as angcor
 from fitgaussian import *
 import robust as rb
-import djs_phot_mb as djs
-from select import select
-import sys, os, time, string, glob, astropy, pickle, pdb
-import scipy as sp
-import matplotlib.patheffects as PathEffects
+import sys, os, time, glob
+#import scipy as sp
+#import matplotlib.patheffects as PathEffects
+import pdb
+#import djs_phot_mb as djs
+#from select import select
+#from astropysics.coords import AngularCoordinate as angcor
+#import astropy.io.fits
+#from astropy import wcs
 
 ######################################################################
 # All Sky Module:
@@ -19,12 +20,18 @@ import matplotlib.patheffects as PathEffects
 # Contains tools for the visualization and analysis of images produced
 # by the Starlight Xpress Oculus All-Sky Camera
 #
-# V.1 Written in March 2015 by J. Swift
+# V.0 Written in March 2015 by J. Swift
+# V.1 In process
 #
 # Updates:
 # --------
-# jswift (25 March 2015): Created progress counter for CreateMovie
-#
+# jswift 3/25/15: Created progress counter for CreateMovie
+# jswift 4/10/15: Changed data_look to show_image
+#               - Updated CreateMovie for current version of ffmpeg
+#                 (version 2.6.1)
+#               - Updated for display of 180 degree lens by cropping
+#               - Changed show_image to movie_image and internalized
+#                 it into CreateMovie
 #
 # To do:
 # -----
@@ -87,7 +94,7 @@ def done_in(tmaster):
 # get_files:                                                           #
 #----------------------------------------------------------------------#
 
-def get_files(prefix,dir="/Users/jonswift/Dropbox (Thacher)/Observatory/AllSkyCam/Data/",
+def get_files(prefix='IMG',dir="/Users/jonswift/Dropbox (Thacher)/Observatory/AllSkyCam/Data/",
               suffix='.FIT'):
     
     """
@@ -141,14 +148,23 @@ def check_ast(file):
 
 
 
-def data_look(file,lowsig=1,hisig=4):
+def show_image(file,lowsig=1,hisig=4,skyonly=False):
 
     # Get image and header
     image, header = pf.getdata(file, 0, header=True)
 
-    sig = rb.std(image)
-    med = np.median(image)
-    mean = np.mean(image)
+    # Keep region determined by eye
+    image = image[:,200:1270]
+
+    # Region of sky to determine statistics determined by eye
+    if skyonly:
+        region = image[280:775,200:900]
+    else:
+        region = image
+        
+    sig = rb.std(region)
+    med = np.median(region)
+    mean = np.mean(region)
     vmin = med - lowsig*sig
     vmax = med + hisig*sig
 
@@ -160,8 +176,11 @@ def data_look(file,lowsig=1,hisig=4):
     plt.axis('off')
     plt.colorbar()
 
+    return
 
-def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0):
+    
+def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
+                windows=False):
     """
     CreateMovie(FrameFiles)
     
@@ -182,6 +201,39 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0)
     	directory because they will be deleted.
     """
 
+    def movie_image(file,lowsig=1,hisig=4):
+
+        # Get image and header
+        image, header = pf.getdata(file, 0, header=True)        
+
+        date = header['DATE-OBS']
+        time = header['TIME-OBS']
+        
+        # Keep region determined by eye
+        image = image[:,200:1270]
+
+        # Do statistics for image display
+        sig = rb.std(image)
+        med = np.median(image)
+        mean = np.mean(image)
+        vmin = med - lowsig*sig
+        vmax = med + hisig*sig
+
+        # Plot image
+        plt.imshow(image,vmin=vmin,vmax=vmax,cmap='gray',
+                   interpolation='nearest',origin='upper')
+
+        plt.annotate(date,[0.08,0.92],horizontalalignment='left',
+                     xycoords='figure fraction',fontsize=14,color='white')
+
+        plt.annotate(time,[0.92,0.92],horizontalalignment='right',
+                     xycoords='figure fraction',fontsize=14,color='white')
+
+        # Turn axis labeling off
+        plt.axis('off')
+        
+        return
+    
     print "Creating movie from all-sky images"
     t = time.time()
     i = 0
@@ -193,7 +245,7 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0)
         sys.stdout.write(" ...Starting frame no. %i of %i \r" % (i,nframes))
         sys.stdout.flush()
 
-        display_image(file,lowsig=lowsig,hisig=hisig)
+        movie_image(file,lowsig=lowsig,hisig=hisig)
         fname = '_tmp%05d.png'%i
 
         plt.savefig(fname,bbox_inches='tight',transparent=True, pad_inches=0,frameon=False,
@@ -205,33 +257,18 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0)
         plt.clf()
 
         i += 1
-    os.system("rm "+filename+".mp4")
-    os.system("ffmpeg -r "+str(fps)+" -b 20000k -i _tmp%05d.png "+filename+".mp4")
-    os.system("rm _tmp*.png")
+
+    if windows:
+        os.system("del "+filename+".mp4")
+    else:
+        os.system("rm "+filename+".mp4")
+    os.system("ffmpeg -r "+str(fps)+" -i _tmp%05d.png -b:v 20M -vcodec libx264 -pix_fmt yuv420p -s 808x764 "+filename+".mp4")
+    if windows:
+        os.system("del _tmp*png")
+    else:
+        os.system("rm _tmp*.png")
     done_in(t)
     
     return
 
-    
-def display_image(file,lowsig=1,hisig=4):
-
-    # Get image and header
-    image, header = pf.getdata(file, 0, header=True)
-
-    # Do statistics for image display
-    sig = rb.std(image)
-    med = np.median(image)
-    mean = np.mean(image)
-    vmin = med - lowsig*sig
-    vmax = med + hisig*sig
-
-    # Plot image
-    plt.imshow(image,vmin=vmin,vmax=vmax,cmap='gray',
-               interpolation='nearest',origin='upper')
-
-    # Turn axis labeling off
-    plt.axis('off')
-    
-
-    return
     
