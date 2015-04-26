@@ -19,6 +19,10 @@
 # jswift  4/1/2015: Vetted all FWHM data
 # jswift 4/15/2015: Added simple histogram plotting function.
 #
+# dklink 4/25/2015: Wrote daygrapher
+#                   Added empty/weird string handling and nan removal to FWHM_ave
+#                   Added high-value data vetting (>50) to vetter
+#
 ######################################################################
 
 import numpy as np
@@ -85,7 +89,7 @@ def distparams(dist):
 
 
 def get_data(year=2015,month=3,day=6,
-             path='/Users/jonswift/Dropbox (Thacher)/Observatory/Seeing/Data/'):
+             path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
 
     """
     Description:
@@ -197,14 +201,22 @@ def FWHM_ave(data,clip=False,sigmas=False):
     """
 
     raw = data['FWHMraw']
+    
     sz = len(raw)
     FWHM = np.ones(sz)* np.nan
     sigma = np.ones(sz)* np.nan
     for i in range(sz):
-        vals = np.array(raw[i]).astype('float')
-        nvals = len(vals)
-        minval = np.min(vals)
-        maxval = np.min(vals)
+        #remove empty strings from data before processing
+        if '' in raw[i]:
+            raw[i].remove('')
+            
+        #safeguard against wierd string formatting errors
+        try:
+            vals = np.array(raw[i]).astype('float')
+        except ValueError:
+            vals = [0]
+        
+        
         if clip:
             newvals, low, high = sigmaclip(vals,low=clip,high=clip)
             FWHM[i] = np.mean(newvals)
@@ -213,6 +225,7 @@ def FWHM_ave(data,clip=False,sigmas=False):
             FWHM[i] = np.mean(vals)
             sigma[i] = np.std(vals)
 
+    FWHM = np.nan_to_num(FWHM)
     if sigmas:
         return [FWHM,sigma]
     else:
@@ -263,6 +276,8 @@ def vet_FWHM_series(time,raw):
     
     Timestamp for data is also input so that vetted data contains corresponding
     timestamp.
+    
+    Also vets values over 50, which appear to come in as the sun is rising and setting
 
     """
 
@@ -283,6 +298,10 @@ def vet_FWHM_series(time,raw):
     keep2, = np.where(new != 0.08)
     new = new[keep2]
     newt = time[keep2]
+    
+    keep3, = np.where(new < 50)
+    new = new[keep3]
+    newt = time[keep3]
     
     FWHM = new.astype('float')
 
@@ -306,3 +325,20 @@ def fwhm_hist(vec):
     mpl.rcdefaults()
     return
 
+def FWHM_day_graph(year=2015, month=3, day=15):
+    """
+    Description:
+    ------------
+    Get FWHM data from the given day, vet it, and then display it in a histogram.
+    """
+    
+    data = get_data(year, month, day) #assumes default path is correct
+    FWHM_data = FWHM_ave(data)
+    time = data['timefloat']
+    
+    vetted_data = vet_FWHM_series(time,FWHM_data)[1]
+    if len(vetted_data) == 0:
+        print "Wow, that day really had shitty data."
+    else:
+        fwhm_hist(vetted_data)
+    
