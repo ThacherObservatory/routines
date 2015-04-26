@@ -18,6 +18,7 @@
 #
 # jswift  4/1/2015: Vetted all FWHM data
 # jswift 4/15/2015: Added simple histogram plotting function.
+
 #
 # dklink 4/25/2015: Wrote daygrapher
 #                   Added empty/weird string handling and nan removal to FWHM_ave
@@ -342,3 +343,6 @@ def FWHM_day_graph(year=2015, month=3, day=15):
     else:
         fwhm_hist(vetted_data)
     
+
+    mpl.rcdefaults()
+    return
