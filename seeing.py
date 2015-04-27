@@ -35,6 +35,7 @@ from scipy.interpolate import interp1d
 import pdb
 import matplotlib as mpl
 import datetime
+import glob
 
 def plot_params(fontsize=16,linewidth=1.5):
     """
@@ -345,4 +346,24 @@ def FWHM_day_graph(year=2015, month=3, day=15):
     
 
     mpl.rcdefaults()
+    return
+
+def get_data_range(start_date=datetime.datetime(2015,3,23),
+                   end_date=datetime.datetime(2015,4,5),
+                   path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
+    
+    files = glob.glob(path+'seeing_log*.log')
+
+    keepfiles = []
+    for file in files:
+        datestr = file.split('_')[-1].split('.')[0]
+        date = datetime.datetime(np.int(datestr.split('-')[0]),\
+                                  np.int(datestr.split('-')[1]),\
+                                  np.int(datestr.split('-')[2]))
+        if date >= start_date and date <= end_date:
+            keepfiles.append(file)
+
+
+    # Need to loop through these files and accumulate data
+        
     return
