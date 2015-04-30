@@ -24,11 +24,13 @@
 #                   Added empty/weird string handling and nan removal to FWHM_ave
 #                   Added high-value data vetting (>50) to vetter
 #
+# dklink 4/30/2015: Finished get_FWHM_data_range
+#                   Wrote graph_FWHM_data_range
 ######################################################################
 
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+#import time
 from scipy.stats import sigmaclip
 from scipy.stats.kde import gaussian_kde
 from scipy.interpolate import interp1d
@@ -91,7 +93,7 @@ def distparams(dist):
 
 
 def get_data(year=2015,month=3,day=6,
-             path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
+             path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/', filename = ''):
 
     """
     Description:
@@ -102,6 +104,8 @@ def get_data(year=2015,month=3,day=6,
     Example:
     --------
     data = get_data(year=2015,month=3,day=6)
+    or
+    data = get_data(filename='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/')
 
 
     To do:
@@ -115,7 +119,10 @@ def get_data(year=2015,month=3,day=6,
     root = str(year)+'-'+str(month)+'-'+str(day)
     suffix = '.log'
 
-    file = path+prefix+root+suffix
+    if filename == '':
+        file = path+prefix+root+suffix
+    else:
+        file = filename
 
     # Read first section of data (tab delimited and uniform)
     d1 = np.loadtxt(file, dtype=[('time', '|S8'), ('date', '|S10'), ('Fmin', 'i6'),
@@ -301,7 +308,7 @@ def vet_FWHM_series(time,raw):
     new = new[keep2]
     newt = time[keep2]
     
-    keep3, = np.where(new < 50)
+    keep3, = np.where(new < 10)
     new = new[keep3]
     newt = time[keep3]
     
@@ -348,22 +355,43 @@ def FWHM_day_graph(year=2015, month=3, day=15):
     mpl.rcdefaults()
     return
 
-def get_data_range(start_date=datetime.datetime(2015,3,23),
+def get_FWHM_data_range(start_date=datetime.datetime(2015,3,23),
                    end_date=datetime.datetime(2015,4,5),
                    path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
     
     files = glob.glob(path+'seeing_log*.log')
 
     keepfiles = []
-    for file in files:
-        datestr = file.split('_')[-1].split('.')[0]
+    for f in files:
+        datestr = f.split('_')[-1].split('.')[0]
         date = datetime.datetime(np.int(datestr.split('-')[0]),\
                                   np.int(datestr.split('-')[1]),\
                                   np.int(datestr.split('-')[2]))
         if date >= start_date and date <= end_date:
-            keepfiles.append(file)
+            keepfiles.append(f)
 
 
     # Need to loop through these files and accumulate data
+
+    all_FWHM_data = []
+    
+    for fname in keepfiles:
+        temp_data = get_data(filename=fname)
+        FWHM_data = FWHM_ave(temp_data)
+        time = temp_data['timefloat']
         
+        vetted_data = vet_FWHM_series(time,FWHM_data)[1]
+        all_FWHM_data.extend(vetted_data)
+    
+    return all_FWHM_data
+    
+def graph_FWHM_data_range(start_date=datetime.datetime(2015,3,23),
+                   end_date=datetime.datetime(2015,4,5),
+                   path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
+    
+    data = get_FWHM_data_range(start_date = start_date, end_date=end_date, path=path)
+    
+    plt.hist(data, bins=50)
+    
+    mpl.rcdefaults()
     return
