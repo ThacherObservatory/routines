@@ -272,3 +272,6 @@ def CreateMovie(FrameFiles, fps=30, filename='AllSkyMovie',lowsig=1.0,hisig=4.0,
     return
 
     
+def get_lst():
+    pass
+
