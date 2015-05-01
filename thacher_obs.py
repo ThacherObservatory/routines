@@ -1,8 +1,8 @@
 import ephem
 thob = ephem.Observer()
-thob.long = ephem.degrees("-7.44111")
-thob.lat = ephem.degrees("31.9533")
-thob.elevation = 1925.0 + 700.0 
+thob.long = ephem.degrees("-119.1773417")
+thob.lat = ephem.degrees("34.467028")
+thob.elevation = 504.4 
 thob.date = "2010/1/1" 
 jupiter = ephem.Jupiter(thob)
 print jupiter.alt, jupiter.az
