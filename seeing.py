@@ -9,7 +9,8 @@
 # - Develop simple plotting routines for data including time series
 #   FWHM, histograms, and peak to peak intensity fluctuations.
 # - Develop routine to read multiple days of data
-# - Develop method to take all data and plot it, presentation worthy formatting
+# - Develop method to take all data and plot it, presentation worthy 
+#   formatting
 # 
 # History:
 # --------
@@ -26,6 +27,13 @@
 #
 # dklink 4/30/2015: Finished get_FWHM_data_range
 #                   Wrote graph_FWHM_data_range
+#
+# jswift 4/30/2015: Added some flexibility with the clipping value on vet_FWHM_data
+#                   and other routines that call vet_FWHM_data 
+#                   Changed global options in plot_params
+#
+# jswift 5/1/2015:  Added plotting function and write option for range of dates.
+#
 ######################################################################
 
 import numpy as np
@@ -36,15 +44,14 @@ from scipy.stats.kde import gaussian_kde
 from scipy.interpolate import interp1d
 import pdb
 import matplotlib as mpl
-import datetime
-import glob
+import datetime, glob, math
 
 def plot_params(fontsize=16,linewidth=1.5):
     """
     Procedure to set the parameters for this suite of plotting utilities
     """
     
-    global fs,lw
+#    global fs,lw
 
     mpl.rcParams['axes.linewidth'] = 1.5
     mpl.rcParams['xtick.major.size'] = 5
@@ -56,7 +63,7 @@ def plot_params(fontsize=16,linewidth=1.5):
     fs = fontsize
     lw = linewidth
 
-    return
+    return fs,lw
 
 def distparams(dist):
     """
@@ -275,7 +282,7 @@ def FWHM_stats(data,all=True,clip=False):
 
     
 
-def vet_FWHM_series(time,raw):
+def vet_FWHM_series(time,raw,clip=10):
 
     """
     Description:
@@ -286,7 +293,7 @@ def vet_FWHM_series(time,raw):
     Timestamp for data is also input so that vetted data contains corresponding
     timestamp.
     
-    Also vets values over 50, which appear to come in as the sun is rising and setting
+    Also vets values over "clip", which appear to come in as the sun is rising and setting
 
     """
 
@@ -308,7 +315,7 @@ def vet_FWHM_series(time,raw):
     new = new[keep2]
     newt = time[keep2]
     
-    keep3, = np.where(new < 10)
+    keep3, = np.where(new < clip)
     new = new[keep3]
     newt = time[keep3]
     
@@ -334,7 +341,7 @@ def fwhm_hist(vec):
     mpl.rcdefaults()
     return
 
-def FWHM_day_graph(year=2015, month=3, day=15):
+def FWHM_day_graph(year=2015, month=3, day=15, clip=10):
     """
     Description:
     ------------
@@ -345,7 +352,7 @@ def FWHM_day_graph(year=2015, month=3, day=15):
     FWHM_data = FWHM_ave(data)
     time = data['timefloat']
     
-    vetted_data = vet_FWHM_series(time,FWHM_data)[1]
+    vetted_data = vet_FWHM_series(time,FWHM_data,clip=clip)[1]
     if len(vetted_data) == 0:
         print "Wow, that day really had shitty data."
     else:
@@ -356,7 +363,7 @@ def FWHM_day_graph(year=2015, month=3, day=15):
     return
 
 def get_FWHM_data_range(start_date=datetime.datetime(2015,3,23),
-                   end_date=datetime.datetime(2015,4,5),
+                   end_date=datetime.datetime(2015,4,5), clip=10,
                    path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
     
     files = glob.glob(path+'seeing_log*.log')
@@ -380,18 +387,35 @@ def get_FWHM_data_range(start_date=datetime.datetime(2015,3,23),
         FWHM_data = FWHM_ave(temp_data)
         time = temp_data['timefloat']
         
-        vetted_data = vet_FWHM_series(time,FWHM_data)[1]
-        all_FWHM_data.extend(vetted_data)
+        vetted_data = vet_FWHM_series(time,FWHM_data,clip=clip)[1]
+        all_FWHM_data = np.append(all_FWHM_data,vetted_data)
     
     return all_FWHM_data
     
 def graph_FWHM_data_range(start_date=datetime.datetime(2015,3,23),
-                   end_date=datetime.datetime(2015,4,5),
-                   path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/'):
-    
-    data = get_FWHM_data_range(start_date = start_date, end_date=end_date, path=path)
-    
-    plt.hist(data, bins=50)
-    
+        end_date=datetime.datetime(2015,4,5),clip=10,
+        path='/home/douglas/Dropbox (Thacher)/Observatory/Seeing/Data/',
+        write=False):
+    plt.figure(9)
+    plt.clf()
+    fs,lw = plot_params()    
+    data = get_FWHM_data_range(start_date = start_date, end_date=end_date, clip=clip, path=path)
+
+    med,mode,interval,lo,hi = distparams(data)
+
+    plt.hist(data, bins=50, color='darkgoldenrod', normed=True, linewidth=lw)
+    plt.xlim(0,clip)
+    plt.xlabel('FWHM (arcsec)',fontsize=fs)
+    plt.ylabel('Frequency (normalized)',fontsize=fs)
+
+    plt.annotate(r'Median = %.2f$^{\prime\prime}$' % med,[0.95,0.92],horizontalalignment='right',
+                     xycoords='axes fraction',fontsize=fs)
+    plt.annotate(r'Mode = %.2f$^{\prime\prime}$' % mode,[0.95,0.85],horizontalalignment='right',
+                     xycoords='axes fraction',fontsize=fs)
+    plt.annotate(r'$1\sigma$ interval = %.2f$^{\prime\prime}$' % interval,[0.95,0.78],horizontalalignment='right',
+                     xycoords='axes fraction',fontsize=fs)
+    if write:
+        plt.savefig('Seeing_hist.pdf',dpi=300)
+
     mpl.rcdefaults()
     return
