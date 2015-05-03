@@ -1,16 +1,13 @@
+#from astropy.time import Time
+#from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+#from astropy import units as u
+#import sys
 import pyfits as pf
-import djs_photfrac_mb as pfmb
-import pytz,datetime
-from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-from astropy import units as u
-import ephem
+import pytz,datetime,ephem
 from astropy import wcs
 from astropy.io.fits import open
 import robust as rb
 from djs_photfrac_mb import *
-import sys
-from scipy.signal import convolve2d
 from scipy.ndimage import gaussian_filter 
 
 do_smooth = False
@@ -166,4 +163,4 @@ plt.annotate('W',[0.785,0.58],horizontalalignment='center',xycoords='figure frac
     fontsize=18)
 plt.annotate(r'mags/arcsec$^2$',[0.5,0.07],horizontalalignment='center', \
              xycoords='figure fraction',fontsize=12)
-plt.savefig('SkyBrightness.png',dpi=300)
+plt.savefig('SkyBrightness.png',dpi=1200)
